@@ -1,0 +1,199 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+}
+
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #333;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    z-index: 10;
+}
+
+#loading-content {
+    max-width: 80%;
+}
+
+#start-button {
+    padding: 10px 20px;
+    font-size: 1.2em;
+    cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+#demo-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+#shader-controls {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0,0,0,0.5);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 10;
+    color: white;
+}
+
+#shader-controls div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#shader-controls span {
+    font-family: monospace;
+    min-width: 40px;
+}
+
+#debug-toggles {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 11; /* Higher than other controls */
+    display: flex;
+    gap: 10px;
+}
+
+#debug-toggles button {
+    background-color: #333;
+    color: white;
+    border: 1px solid #777;
+}
+
+#scanning-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.3);
+    z-index: 12; /* Highest z-index */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    flex-direction: column;
+}
+
+.scanner-box {
+    position: relative;
+    width: 80vw;
+    max-width: 400px;
+    aspect-ratio: 4 / 3; /* 80cm / 60cm */
+    border: 2px solid rgba(255,255,255,0.7);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.scanner-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.25;
+}
+
+.scanner-box .scanner-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+    animation: scan-anim 3s ease-in-out infinite;
+}
+
+#scanning-overlay p {
+    margin-top: 20px;
+    font-size: 1.2em;
+    text-shadow: 1px 1px 2px black;
+}
+
+@keyframes scan-anim {
+    0% { top: 0; }
+    50% { top: calc(100% - 3px); }
+    100% { top: 0; }
+}
+
+#transform-controls, #lighting-controls {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    background-color: rgba(0,0,0,0.6);
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 10;
+    color: white;
+    width: 350px;
+}
+
+#lighting-controls {
+    top: 60px; /* Reset in case of future changes */
+}
+
+#lighting-controls h3, #lighting-controls h4, #transform-controls h3 {
+    margin-top: 0;
+}
+
+.light-panel .light-control-group {
+    border: 1px solid #555;
+    padding: 5px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.light-panel .light-control-group span {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.light-panel label, #transform-controls label {
+    display: block;
+    margin: 2px 0;
+}
+
+#copy-lights-button, #copy-transform-button {
+    width: 100%;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#demo-controls button {
+    padding: 8px 12px;
+    font-size: 1em;
+    cursor: pointer;
+    background-color: #008CBA;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+a-scene {
+    height: 100vh;
+    width: 100vw;
+} 

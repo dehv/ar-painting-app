@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AR Painting</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" href="style.css">
+
+    <!-- A-Frame and Mind AR -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
+    <script src="texture-blender.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const sceneEl = document.querySelector('a-scene');
+
+            sceneEl.addEventListener('loaded', () => {
+                const target = document.querySelector('#target');
+                const modelEntity = document.querySelector('#model-entity');
+                const startButton = document.getElementById('start-button');
+                const loadingScreen = document.getElementById('loading-screen');
+                const timeOfDayControls = document.getElementById('demo-controls');
+                const shaderControls = document.getElementById('shader-controls');
+                const lightingControls = document.getElementById('lighting-controls');
+                const debugToggles = document.getElementById('debug-toggles');
+                const markerPlane = document.getElementById('marker-plane');
+                const scanningOverlay = document.getElementById('scanning-overlay');
+                
+                const urlParams = new URLSearchParams(window.location.search);
+                const isDebugMode = urlParams.has('debug');
+
+                const { initializeTimeOfDay } = setupTimeOfDay(modelEntity, isDebugMode);
+                initializeTimeOfDay();
+
+                if (isDebugMode) {
+                    // --- DEBUG MODE ---
+                    loadingScreen.style.display = 'none';
+                    debugToggles.style.display = 'flex';
+                    target.setAttribute('visible', 'true');
+                    markerPlane.setAttribute('visible', 'true');
+                    // Enable FPS-style controls for debugging
+                    const cameraEl = sceneEl.camera.el;
+                    cameraEl.setAttribute('look-controls', 'enabled', true);
+                    cameraEl.setAttribute('wasd-controls', 'enabled: true; fly: true;');
+                    cameraEl.setAttribute('position', '0 1.6 2'); // Start at a reasonable height and distance
+                } else {
+                    // --- AR MODE ---
+                    sceneEl.setAttribute('mindar-image', 'imageTargetSrc: assets/marker.mind; autoStart: false; uiScanning: no;');
+                    target.setAttribute('mindar-image-target', 'targetIndex', 0);
+
+                    startButton.addEventListener('click', () => {
+                        loadingScreen.style.display = 'none';
+                        scanningOverlay.style.display = 'flex';
+                        const arSystem = sceneEl.systems["mindar-image-system"];
+                        arSystem.start();
+                    });
+                }
+            });
+        });
+
+        const setupToggle = (buttonId, panelId) => {
+            const button = document.getElementById(buttonId);
+            const panel = document.getElementById(panelId);
+            if (!button || !panel) return;
+
+            button.addEventListener('click', () => {
+                const isVisible = panel.style.display === 'block';
+                panel.style.display = isVisible ? 'none' : 'block';
+            });
+        };
+
+        const setupTimeOfDay = (modelEntity, isDebugMode) => {
+            const morningButton = document.getElementById('morning-button');
+            const dayButton = document.getElementById('day-button');
+            const nightButton = document.getElementById('night-button');
+            const target = document.querySelector('#target');
+            const scanningOverlay = document.getElementById('scanning-overlay');
+
+            const musicMorning = document.querySelector('#music-morning');
+            const musicDay = document.querySelector('#music-day');
+            const musicNight = document.querySelector('#music-night');
+            let currentMusic = musicDay;
+
+            const morningLight = document.querySelector('#morning-hemi-light');
+            const dayLight = document.querySelector('#day-hemi-light');
+            const nightLight = document.querySelector('#night-hemi-light');
+            
+            const morningDirLight = document.querySelector('#morning-dir-light');
+            const dayDirLight = document.querySelector('#day-dir-light');
+            const nightDirLight = document.querySelector('#night-dir-light');
+
+            const lightPanels = {
+                morning: document.getElementById('morning-light-panel'),
+                day: document.getElementById('day-light-panel'),
+                night: document.getElementById('night-light-panel')
+            };
+
+            // Using an object to pass by reference
+            let targetVisible = { value: false };
+
+            // Helper function to connect a slider to a shader property and a value display
+            const setupSlider = (sliderId, valueDisplayId, propertyName) => {
+                const slider = document.getElementById(sliderId);
+                const display = document.getElementById(valueDisplayId);
+
+                // Set initial display value
+                display.textContent = slider.value;
+
+                slider.addEventListener('input', (event) => {
+                    const value = event.target.value;
+                    display.textContent = value;
+                    modelEntity.setAttribute('texture-blender', propertyName, value);
+                });
+            };
+
+            setupSlider('threshold-slider', 'threshold-value', 'threshold');
+            setupSlider('softness-slider', 'softness-value', 'blendSoftness');
+            setupSlider('scroll-x-slider', 'scroll-x-value', 'noiseScrollSpeedX');
+            setupSlider('scroll-y-slider', 'scroll-y-value', 'noiseScrollSpeedY');
+
+            const setTimeOfDay = (mode) => {
+                const wasPlaying = !isDebugMode && !currentMusic.paused;
+
+                [musicMorning, musicDay, musicNight].forEach(m => m.pause());
+                [morningLight, dayLight, nightLight, morningDirLight, dayDirLight, nightDirLight].forEach(l => l.setAttribute('light', 'intensity', 0));
+
+                if (mode === 'morning') {
+                    morningLight.setAttribute('light', 'intensity', 1.0);
+                    morningDirLight.setAttribute('light', 'intensity', 0.54);
+                    currentMusic = musicMorning;
+                } else if (mode === 'night') {
+                    nightLight.setAttribute('light', 'intensity', 0.83);
+                    nightDirLight.setAttribute('light', 'intensity', 0.89);
+                    currentMusic = musicNight;
+                } else {
+                    dayLight.setAttribute('light', 'intensity', 0.6);
+                    dayDirLight.setAttribute('light', 'intensity', 0.47);
+                    currentMusic = musicDay;
+                }
+
+                if (wasPlaying) {
+                    currentMusic.play();
+                }
+
+                // Show only the relevant control panel in debug mode
+                if (isDebugMode) {
+                    for (const key in lightPanels) {
+                        lightPanels[key].style.display = (key === mode) ? 'block' : 'none';
+                    }
+                }
+            };
+            
+            const initializeTimeOfDay = () => {
+                const hour = new Date().getHours();
+                if (hour >= 5 && hour < 12) setTimeOfDay('morning');
+                else if (hour >= 18 || hour < 5) setTimeOfDay('night');
+                else setTimeOfDay('day');
+            };
+
+            morningButton.addEventListener('click', () => setTimeOfDay('morning'));
+            dayButton.addEventListener('click', () => setTimeOfDay('day'));
+            nightButton.addEventListener('click', () => setTimeOfDay('night'));
+            
+            if (isDebugMode) {
+                setupSlider('threshold-slider', 'threshold-value', 'threshold', modelEntity, 'texture-blender');
+                setupSlider('softness-slider', 'softness-value', 'blendSoftness', modelEntity, 'texture-blender');
+                setupSlider('scroll-x-slider', 'scroll-x-value', 'noiseScrollSpeedX', modelEntity, 'texture-blender');
+                setupSlider('scroll-y-slider', 'scroll-y-value', 'noiseScrollSpeedY', modelEntity, 'texture-blender');
+                
+                // Set up transform sliders
+                const position = modelEntity.getAttribute('position');
+                const rotation = modelEntity.getAttribute('rotation');
+                const scale = modelEntity.getAttribute('scale');
+
+                const setupTransformSlider = (sliderId, valueDisplayId, component, property) => {
+                    const slider = document.getElementById(sliderId);
+                    const display = document.getElementById(valueDisplayId);
+                    display.textContent = slider.value;
+                    slider.addEventListener('input', (e) => {
+                        const value = e.target.value;
+                        const current = modelEntity.getAttribute(component);
+                        current[property] = value;
+                        modelEntity.setAttribute(component, current);
+                        display.textContent = value;
+                    });
+                };
+                
+                setupTransformSlider('pos-x', 'pos-x-value', 'position', 'x');
+                setupTransformSlider('pos-y', 'pos-y-value', 'position', 'y');
+                setupTransformSlider('pos-z', 'pos-z-value', 'position', 'z');
+                setupTransformSlider('rot-x', 'rot-x-value', 'rotation', 'x');
+                setupTransformSlider('rot-y', 'rot-y-value', 'rotation', 'y');
+                setupTransformSlider('rot-z', 'rot-z-value', 'rotation', 'z');
+                
+                const scaleSlider = document.getElementById('scale');
+                const scaleValue = document.getElementById('scale-value');
+                scaleValue.textContent = scaleSlider.value;
+                scaleSlider.addEventListener('input', (e) => {
+                    const value = e.target.value;
+                    modelEntity.setAttribute('scale', { x: value, y: value, z: value });
+                    scaleValue.textContent = value;
+                });
+
+                const copyTransformButton = document.getElementById('copy-transform-button');
+                copyTransformButton.addEventListener('click', () => {
+                    const settings = {
+                        position: modelEntity.getAttribute('position'),
+                        rotation: modelEntity.getAttribute('rotation'),
+                        scale: modelEntity.getAttribute('scale')
+                    };
+                    const settingsString = JSON.stringify(settings, null, 2);
+                    navigator.clipboard.writeText(settingsString).then(() => {
+                        alert('Transform settings copied to clipboard!');
+                    }).catch(err => {
+                        console.error('Failed to copy settings: ', err);
+                    });
+                });
+
+                setupLightControls();
+                
+                setupToggle('toggle-time-btn', 'demo-controls');
+                setupToggle('toggle-shader-btn', 'shader-controls');
+                setupToggle('toggle-lights-btn', 'lighting-controls');
+                setupToggle('toggle-transform-btn', 'transform-controls');
+            }
+
+            if (!isDebugMode) {
+                target.addEventListener('targetFound', () => { 
+                    currentMusic.play();
+                    scanningOverlay.style.display = 'none';
+                });
+                target.addEventListener('targetLost', () => { 
+                    currentMusic.pause(); 
+                    scanningOverlay.style.display = 'flex';
+                });
+            }
+
+            return { initializeTimeOfDay };
+        };
+
+        // Helper function to connect a slider to a component property and a value display
+        const setupSlider = (sliderId, valueDisplayId, propertyName, entity, componentName) => {
+            const slider = document.getElementById(sliderId);
+            const display = document.getElementById(valueDisplayId);
+            if (!slider) return;
+
+            const updateValue = (value) => {
+                if (display) display.textContent = value;
+                entity.setAttribute(componentName, propertyName, value);
+            };
+
+            updateValue(slider.value);
+            slider.addEventListener('input', (event) => updateValue(event.target.value));
+        };
+
+        const setupLightControls = () => {
+            const modes = ['morning', 'day', 'night'];
+            const lightTypes = ['hemi', 'dir'];
+
+            modes.forEach(mode => {
+                const dirLight = document.querySelector(`#${mode}-dir-light`);
+
+                lightTypes.forEach(type => {
+                    const lightEl = document.querySelector(`#${mode}-${type}-light`);
+                    
+                    // Sliders for intensity
+                    const intensitySlider = document.querySelector(`#${mode}-${type}-intensity`);
+                    const intensityValue = document.querySelector(`#${mode}-${type}-intensity-value`);
+                    if(intensitySlider) {
+                        intensityValue.textContent = intensitySlider.value;
+                        intensitySlider.addEventListener('input', (e) => {
+                            lightEl.setAttribute('light', 'intensity', e.target.value);
+                            intensityValue.textContent = e.target.value;
+                        });
+                    }
+
+                    // Color pickers
+                    const colorPicker = document.querySelector(`#${mode}-${type}-color`);
+                    if(colorPicker) {
+                        colorPicker.value = lightEl.getAttribute('light').color;
+                        colorPicker.addEventListener('input', (e) => lightEl.setAttribute('light', 'color', e.target.value));
+                    }
+                });
+
+                // Special handling for hemisphere groundColor
+                const hemiGroundPicker = document.querySelector(`#${mode}-hemi-ground`);
+                const hemiLight = document.querySelector(`#${mode}-hemi-light`);
+                hemiGroundPicker.value = hemiLight.getAttribute('light').groundColor;
+                hemiGroundPicker.addEventListener('input', (e) => hemiLight.setAttribute('light', 'groundColor', e.target.value));
+
+                // Sliders for directional light position
+                ['x', 'y', 'z'].forEach(axis => {
+                    const posSlider = document.querySelector(`#${mode}-dir-${axis}`);
+                    const posValue = document.querySelector(`#${mode}-dir-${axis}-value`);
+                    posValue.textContent = posSlider.value;
+                    posSlider.addEventListener('input', (e) => {
+                        const newPos = { ...dirLight.getAttribute('position') };
+                        newPos[axis] = e.target.value;
+                        dirLight.setAttribute('position', newPos);
+                        posValue.textContent = e.target.value;
+                    });
+                });
+            });
+
+            // Copy button logic
+            const copyButton = document.getElementById('copy-lights-button');
+            copyButton.addEventListener('click', () => {
+                const settings = {};
+                modes.forEach(mode => {
+                    settings[mode] = {
+                        hemi: {
+                            intensity: document.querySelector(`#${mode}-hemi-intensity`).value,
+                            color: document.querySelector(`#${mode}-hemi-color`).value,
+                            groundColor: document.querySelector(`#${mode}-hemi-ground`).value,
+                        },
+                        dir: {
+                            intensity: document.querySelector(`#${mode}-dir-intensity`).value,
+                            color: document.querySelector(`#${mode}-dir-color`).value,
+                            position: {
+                                x: document.querySelector(`#${mode}-dir-x`).value,
+                                y: document.querySelector(`#${mode}-dir-y`).value,
+                                z: document.querySelector(`#${mode}-dir-z`).value,
+                            }
+                        }
+                    };
+                });
+                const settingsString = JSON.stringify(settings, null, 2);
+                navigator.clipboard.writeText(settingsString).then(() => {
+                    alert('Light settings copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy settings: ', err);
+                });
+            });
+        };
+    </script>
+</head>
+<body>
+    <div id="loading-screen">
+        <div id="loading-content">
+            <h1>AR Painting</h1>
+            <p>Point your camera at the marker image to begin.</p>
+            <button id="start-button">Start</button>
+        </div>
+    </div>
+
+    <div id="demo-controls" style="display: none;">
+        <button id="morning-button">Morning</button>
+        <button id="day-button">Day</button>
+        <button id="night-button">Night</button>
+    </div>
+    <div id="debug-toggles" style="display: none;">
+        <button id="toggle-time-btn">Time Controls</button>
+        <button id="toggle-shader-btn">Shader Controls</button>
+        <button id="toggle-lights-btn">Light Controls</button>
+        <button id="toggle-transform-btn">Transform Controls</button>
+    </div>
+    <div id="shader-controls" style="display: none;">
+        <div>
+            <label for="threshold-slider">Noise Threshold:</label>
+            <input type="range" id="threshold-slider" min="0" max="1" step="0.01" value="0.58">
+            <span id="threshold-value"></span>
+        </div>
+        <div>
+            <label for="softness-slider">Blend Softness:</label>
+            <input type="range" id="softness-slider" min="0" max="0.5" step="0.01" value="0.37">
+            <span id="softness-value"></span>
+        </div>
+        <div>
+            <label for="scroll-x-slider">Scroll Speed X:</label>
+            <input type="range" id="scroll-x-slider" min="-0.2" max="0.2" step="0.01" value="0.05">
+            <span id="scroll-x-value"></span>
+        </div>
+        <div>
+            <label for="scroll-y-slider">Scroll Speed Y:</label>
+            <input type="range" id="scroll-y-slider" min="-0.2" max="0.2" step="0.01" value="-0.06">
+            <span id="scroll-y-value"></span>
+        </div>
+    </div>
+    <div id="transform-controls" style="display: none;">
+        <h3>Transform Controls</h3>
+        <div>
+            <label>Position X: <input type="range" id="pos-x" min="-1" max="1" step="0.01" value="0.27"><span id="pos-x-value"></span></label>
+            <label>Position Y: <input type="range" id="pos-y" min="-1" max="1" step="0.01" value="-0.03"><span id="pos-y-value"></span></label>
+            <label>Position Z: <input type="range" id="pos-z" min="-1" max="1" step="0.01" value="0.01"><span id="pos-z-value"></span></label>
+        </div>
+        <div>
+            <label>Rotation X: <input type="range" id="rot-x" min="-180" max="180" step="1" value="0"><span id="rot-x-value"></span></label>
+            <label>Rotation Y: <input type="range" id="rot-y" min="-180" max="180" step="1" value="1"><span id="rot-y-value"></span></label>
+            <label>Rotation Z: <input type="range" id="rot-z" min="-180" max="180" step="1" value="0"><span id="rot-z-value"></span></label>
+        </div>
+        <div>
+            <label>Scale: <input type="range" id="scale" min="0.1" max="5" step="0.01" value="0.56"><span id="scale-value"></span></label>
+        </div>
+        <button id="copy-transform-button">Copy Transform Settings</button>
+    </div>
+    <div id="scanning-overlay" style="display: none;">
+        <div class="scanner-box">
+            <img src="assets/marker.jpg" alt="Scan this image">
+            <div class="scanner-line"></div>
+            <p>Point your camera at the painting.</p>
+        </div>
+    </div>
+    <div id="lighting-controls" style="display: none;">
+        <h3>Lighting Controls</h3>
+        <div id="morning-light-panel" class="light-panel">
+            <h4>Morning</h4>
+            <div class="light-control-group">
+                <span>Hemi</span>
+                <label>Intensity: <input type="range" id="morning-hemi-intensity" min="0" max="2" step="0.01" value="1"><span id="morning-hemi-intensity-value"></span></label>
+                <label>Sky: <input type="color" id="morning-hemi-color" value="#f9e3ca"></label>
+                <label>Ground: <input type="color" id="morning-hemi-ground" value="#a8774d"></label>
+            </div>
+            <div class="light-control-group">
+                <span>Dir</span>
+                <label>Intensity: <input type="range" id="morning-dir-intensity" min="0" max="2" step="0.01" value="0.54"><span id="morning-dir-intensity-value"></span></label>
+                <label>Color: <input type="color" id="morning-dir-color" value="#f2ded1"></label>
+                <label>X: <input type="range" id="morning-dir-x" min="-2" max="2" step="0.1" value="-1.3"><span id="morning-dir-x-value"></span></label>
+                <label>Y: <input type="range" id="morning-dir-y" min="-2" max="2" step="0.1" value="0.4"><span id="morning-dir-y-value"></span></label>
+                <label>Z: <input type="range" id="morning-dir-z" min="-2" max="2" step="0.1" value="-1"><span id="morning-dir-z-value"></span></label>
+            </div>
+        </div>
+        <div id="day-light-panel" class="light-panel" style="display: none;">
+            <h4>Day</h4>
+            <div class="light-control-group">
+                <span>Hemi</span>
+                <label>Intensity: <input type="range" id="day-hemi-intensity" min="0" max="2" step="0.01" value="0.6"><span id="day-hemi-intensity-value"></span></label>
+                <label>Sky: <input type="color" id="day-hemi-color" value="#ffffff"></label>
+                <label>Ground: <input type="color" id="day-hemi-ground" value="#bbbbbb"></label>
+            </div>
+            <div class="light-control-group">
+                <span>Dir</span>
+                <label>Intensity: <input type="range" id="day-dir-intensity" min="0" max="2" step="0.01" value="0.47"><span id="day-dir-intensity-value"></span></label>
+                <label>Color: <input type="color" id="day-dir-color" value="#ffffff"></label>
+                <label>X: <input type="range" id="day-dir-x" min="-2" max="2" step="0.1" value="0.5"><span id="day-dir-x-value"></span></label>
+                <label>Y: <input type="range" id="day-dir-y" min="-2" max="2" step="0.1" value="1"><span id="day-dir-y-value"></span></label>
+                <label>Z: <input type="range" id="day-dir-z" min="-2" max="2" step="0.1" value="1"><span id="day-dir-z-value"></span></label>
+            </div>
+        </div>
+        <div id="night-light-panel" class="light-panel" style="display: none;">
+            <h4>Night</h4>
+            <div class="light-control-group">
+                <span>Hemi</span>
+                <label>Intensity: <input type="range" id="night-hemi-intensity" min="0" max="2" step="0.01" value="0.83"><span id="night-hemi-intensity-value"></span></label>
+                <label>Sky: <input type="color" id="night-hemi-color" value="#6a85b0"></label>
+                <label>Ground: <input type="color" id="night-hemi-ground" value="#222233"></label>
+            </div>
+            <div class="light-control-group">
+                <span>Dir</span>
+                <label>Intensity: <input type="range" id="night-dir-intensity" min="0" max="2" step="0.01" value="0.89"><span id="night-dir-intensity-value"></span></label>
+                <label>Color: <input type="color" id="night-dir-color" value="#8899ff"></label>
+                <label>X: <input type="range" id="night-dir-x" min="-2" max="2" step="0.1" value="1"><span id="night-dir-x-value"></span></label>
+                <label>Y: <input type="range" id="night-dir-y" min="-2" max="2" step="0.1" value="0.5"><span id="night-dir-y-value"></span></label>
+                <label>Z: <input type="range" id="night-dir-z" min="-2" max="2" step="0.1" value="-1"><span id="night-dir-z-value"></span></label>
+            </div>
+        </div>
+        <button id="copy-lights-button">Copy Light Settings</button>
+    </div>
+
+    <!-- The AR experience is embedded in an A-Frame scene. MindAR is added dynamically. -->
+    <a-scene
+        color-space="sRGB"
+        renderer="colorManagement: true, physicallyCorrectLights"
+        vr-mode-ui="enabled: false"
+        device-orientation-permission-ui="enabled: false"
+    >
+        <a-assets>
+            <a-asset-item id="model" src="assets/sleeping CLIP v2.glb"></a-asset-item>
+            <img id="scanTexture" src="assets/scan_texture.jpg" crossorigin="anonymous">
+            <img id="paintingTexture" src="assets/marker.jpg" crossorigin="anonymous">
+            <img id="noiseMap" src="assets/noiseTexture.png" crossorigin="anonymous">
+            <audio id="music-morning" src="assets/music_morning.wav" preload="auto" loop></audio>
+            <audio id="music-day" src="assets/music_day.wav" preload="auto" loop></audio>
+            <audio id="music-night" src="assets/music_night.wav" preload="auto" loop></audio>
+        </a-assets>
+        
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity id="target" visible="false">
+            <a-plane
+                id="marker-plane"
+                src="#paintingTexture"
+                width="1"
+                height="0.75"
+                material="opacity: 0.5; transparent: true"
+                visible="false"
+            ></a-plane>
+            <a-entity
+                id="model-entity"
+                gltf-model="#model"
+                scale="0.56 0.56 0.56"
+                position="0.27 -0.03 0.01"
+                rotation="0 1 0"
+                texture-blender="
+                    scanTexture: #scanTexture;
+                    paintingTexture: #paintingTexture;
+                    noiseMap: #noiseMap;
+                    threshold: 0.58;
+                    blendSoftness: 0.37;
+                    noiseScrollSpeedX: 0.05;
+                    noiseScrollSpeedY: -0.06;
+                "
+            >
+            </a-entity>
+        </a-entity>
+
+        <!-- Hemisphere lights for soft ambient color -->
+        <a-entity id="morning-hemi-light" light="type: hemisphere; color: #f9e3ca; groundColor: #a8774d; intensity: 0;"></a-entity>
+        <a-entity id="day-hemi-light" light="type: hemisphere; color: #ffffff; groundColor: #bbbbbb; intensity: 0;"></a-entity>
+        <a-entity id="night-hemi-light" light="type: hemisphere; color: #6a85b0; groundColor: #222233; intensity: 0;"></a-entity>
+        
+        <!-- Directional lights for highlights and definition -->
+        <a-entity id="morning-dir-light" light="type: directional; color: #f2ded1; intensity: 0" position="-1.3 0.4 -1"></a-entity>
+        <a-entity id="day-dir-light" light="type: directional; color: #ffffff; intensity: 0" position="0.5 1 1"></a-entity>
+        <a-entity id="night-dir-light" light="type: directional; color: #8899ff; intensity: 0" position="1 0.5 -1"></a-entity>
+    </a-scene>
+</body>
+</html> 
