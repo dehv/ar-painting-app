@@ -7,6 +7,7 @@ AFRAME.registerComponent('texture-blender', {
     noiseMap: { type: 'map' },
     normalMap: { type: 'map' },
     roughnessMap: { type: 'map' },
+    roughnessFactor: { type: 'number', default: 0.54 },
     threshold: { type: 'number', default: 0.58 },
     blendSoftness: { type: 'number', default: 0.37 },
     noiseScrollSpeedX: { type: 'number', default: 0.05 },
@@ -36,6 +37,9 @@ AFRAME.registerComponent('texture-blender', {
         this.shader.uniforms.uThreshold.value = this.data.threshold;
         this.shader.uniforms.uBlendSoftness.value = this.data.blendSoftness;
     }
+    if (this.material) {
+        this.material.roughness = this.data.roughnessFactor;
+    }
   },
 
   applyShader: function (model) {
@@ -61,7 +65,8 @@ AFRAME.registerComponent('texture-blender', {
     const material = new THREE.MeshStandardMaterial({ 
         map: scanTexture,
         normalMap: normalMap,
-        roughnessMap: roughnessMap
+        roughnessMap: roughnessMap,
+        roughness: data.roughnessFactor
     });
 
     // Use onBeforeCompile to inject our custom code into the standard shader.
@@ -73,14 +78,15 @@ AFRAME.registerComponent('texture-blender', {
       shader.uniforms.uBlendSoftness = { value: data.blendSoftness };
       shader.uniforms.uNoiseOffset = { value: new THREE.Vector2(0, 0) };
 
-      // 2. Add varyings and uniforms to the shader code
-      shader.vertexShader = 'varying vec2 vUv2;\n' + shader.vertexShader;
+      // 2. Manually declare our varyings to prevent them from being optimized away.
+      shader.vertexShader = 'varying vec2 vUv;\nvarying vec2 vUv2;\n' + shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
         '#include <uv_vertex>',
-        '#include <uv_vertex>\nvUv2 = uv1;'
+        // Pass both UV sets to the fragment shader
+        '#include <uv_vertex>\nvUv = uv;\nvUv2 = uv1;'
       );
       
-      shader.fragmentShader = 'varying vec2 vUv2;\n' + 
+      shader.fragmentShader = 'varying vec2 vUv;\nvarying vec2 vUv2;\n' + 
                               'uniform sampler2D uPaintingTexture;\n' + 
                               'uniform sampler2D uNoiseMap;\n' +
                               'uniform float uThreshold;\n' +
@@ -88,7 +94,22 @@ AFRAME.registerComponent('texture-blender', {
                               'uniform vec2 uNoiseOffset;\n' + 
                               shader.fragmentShader;
 
-      // 3. Inject the blending logic
+      // 3. Inject the logic to INVERT the roughness map
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <roughnessmap_fragment>',
+        `
+        float roughnessFactor = roughness;
+        #ifdef USE_ROUGHNESSMAP
+            vec4 texelRoughness = texture2D( roughnessMap, vUv );
+            // By default, Three.js uses the green channel (.g).
+            // We are inverting the value here.
+            float invertedRoughness = texelRoughness.g;
+            roughnessFactor += invertedRoughness;
+        #endif
+        `
+      );
+
+      // 4. Inject the blending logic
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <map_fragment>',
         `
@@ -108,8 +129,9 @@ AFRAME.registerComponent('texture-blender', {
         `
       );
       
-      // Save the shader so we can update uniforms in tick()
+      // Save the shader and material so we can update them later
       this.shader = shader;
+      this.material = material;
     };
 
     model.traverse((node) => {

@@ -114,6 +114,7 @@ const setupDebugUI = (modelEntity) => {
     setupSlider('softness-slider', 'softness-value', 'blendSoftness', modelEntity, 'texture-blender');
     setupSlider('scroll-x-slider', 'scroll-x-value', 'noiseScrollSpeedX', modelEntity, 'texture-blender');
     setupSlider('scroll-y-slider', 'scroll-y-value', 'noiseScrollSpeedY', modelEntity, 'texture-blender');
+    setupSlider('roughness-slider', 'roughness-value', 'roughnessFactor', modelEntity, 'texture-blender');
     
     setupTransformSlider('pos-x', 'pos-x-value', 'position', 'x', modelEntity);
     setupTransformSlider('pos-y', 'pos-y-value', 'position', 'y', modelEntity);

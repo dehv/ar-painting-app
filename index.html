@@ -56,6 +56,11 @@
             <input type="range" id="scroll-y-slider" min="-0.2" max="0.2" step="0.01" value="-0.06">
             <span id="scroll-y-value"></span>
         </div>
+        <div>
+            <label for="roughness-slider">Roughness:</label>
+            <input type="range" id="roughness-slider" min="0" max="2" step="0.01" value="1.0">
+            <span id="roughness-value"></span>
+        </div>
     </div>
     <div id="transform-controls" style="display: none;">
         <h3>Transform Controls</h3>
@@ -180,6 +185,7 @@
                     noiseMap: #noiseMap;
                     normalMap: #normalMap;
                     roughnessMap: #roughnessMap;
+                    roughnessFactor: 1.0;
                     threshold: 0.58;
                     blendSoftness: 0.37;
                     noiseScrollSpeedX: 0.05;
