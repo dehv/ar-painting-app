@@ -5,6 +5,8 @@ AFRAME.registerComponent('texture-blender', {
     scanTexture: { type: 'map' },
     paintingTexture: { type: 'map' },
     noiseMap: { type: 'map' },
+    normalMap: { type: 'map' },
+    roughnessMap: { type: 'map' },
     threshold: { type: 'number', default: 0.58 },
     blendSoftness: { type: 'number', default: 0.37 },
     noiseScrollSpeedX: { type: 'number', default: 0.05 },
@@ -43,9 +45,11 @@ AFRAME.registerComponent('texture-blender', {
     const scanTexture = new THREE.Texture(data.scanTexture);
     const paintingTexture = new THREE.Texture(data.paintingTexture);
     const noiseMap = new THREE.Texture(data.noiseMap);
+    const normalMap = new THREE.Texture(data.normalMap);
+    const roughnessMap = new THREE.Texture(data.roughnessMap);
 
     // Set texture properties
-    [scanTexture, paintingTexture, noiseMap].forEach(t => {
+    [scanTexture, paintingTexture, noiseMap, normalMap, roughnessMap].forEach(t => {
         t.needsUpdate = true;
         t.flipY = false;
     });
@@ -54,7 +58,11 @@ AFRAME.registerComponent('texture-blender', {
 
     // Start with a standard material, using the SCAN texture as the base map.
     // This ensures it's mapped with the primary UV set (`uv`).
-    const material = new THREE.MeshStandardMaterial({ map: scanTexture });
+    const material = new THREE.MeshStandardMaterial({ 
+        map: scanTexture,
+        normalMap: normalMap,
+        roughnessMap: roughnessMap
+    });
 
     // Use onBeforeCompile to inject our custom code into the standard shader.
     material.onBeforeCompile = (shader) => {
