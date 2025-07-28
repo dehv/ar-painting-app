@@ -11,6 +11,7 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
     const musicDay = document.querySelector('#music-day');
     const musicNight = document.querySelector('#music-night');
     let currentMusic = musicDay;
+    let isScanning = false;
 
     const morningHemiLight = document.querySelector('#morning-hemi-light');
     const dayHemiLight = document.querySelector('#day-hemi-light');
@@ -54,16 +55,18 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
     
     if (!isDebugMode) {
         target.addEventListener('targetFound', () => { 
+            isScanning = false;
             currentMusic.play();
             scanningOverlay.style.display = 'none';
         });
         target.addEventListener('targetLost', () => { 
+            isScanning = true;
             currentMusic.pause(); 
             scanningOverlay.style.display = 'flex';
         });
     }
 
-    return { initializeTimeOfDay };
+    return { initializeTimeOfDay, getIsScanning: () => isScanning, setIsScanning: (val) => { isScanning = val; } };
 };
 
 AFRAME.registerComponent('scene-manager', {
@@ -80,7 +83,7 @@ AFRAME.registerComponent('scene-manager', {
         const urlParams = new URLSearchParams(window.location.search);
         const isDebugMode = urlParams.has('debug');
 
-        const { initializeTimeOfDay } = setupTimeOfDay(modelEntity, isDebugMode);
+        const { initializeTimeOfDay, getIsScanning, setIsScanning } = setupTimeOfDay(modelEntity, isDebugMode);
         initializeTimeOfDay();
 
         if (isDebugMode) {
@@ -102,8 +105,20 @@ AFRAME.registerComponent('scene-manager', {
             startButton.addEventListener('click', () => {
                 loadingScreen.style.display = 'none';
                 scanningOverlay.style.display = 'flex';
+                setIsScanning(true);
+                sceneEl.classList.remove('a-scene-inactive');
                 const arSystem = sceneEl.systems["mindar-image-system"];
                 arSystem.start();
+            });
+
+            sceneEl.addEventListener('enter-vr', () => {
+                scanningOverlay.style.display = 'none';
+            });
+
+            sceneEl.addEventListener('exit-vr', () => {
+                if (getIsScanning()) {
+                    scanningOverlay.style.display = 'flex';
+                }
             });
         }
     }

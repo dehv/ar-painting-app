@@ -72,17 +72,17 @@
     <div id="transform-controls" style="display: none;">
         <h3>Transform Controls</h3>
         <div>
-            <label>Position X: <input type="range" id="pos-x" min="-1" max="1" step="0.01" value="0.27"><span id="pos-x-value"></span></label>
-            <label>Position Y: <input type="range" id="pos-y" min="-1" max="1" step="0.01" value="-0.03"><span id="pos-y-value"></span></label>
-            <label>Position Z: <input type="range" id="pos-z" min="-1" max="1" step="0.01" value="0.01"><span id="pos-z-value"></span></label>
+            <label>Position X: <input type="range" id="pos-x" min="-1" max="1" step="0.01" value="0.07"><span id="pos-x-value"></span></label>
+            <label>Position Y: <input type="range" id="pos-y" min="-1" max="1" step="0.01" value="-0.02"><span id="pos-y-value"></span></label>
+            <label>Position Z: <input type="range" id="pos-z" min="-1" max="1" step="0.01" value="-0.03"><span id="pos-z-value"></span></label>
         </div>
         <div>
             <label>Rotation X: <input type="range" id="rot-x" min="-180" max="180" step="1" value="0"><span id="rot-x-value"></span></label>
-            <label>Rotation Y: <input type="range" id="rot-y" min="-180" max="180" step="1" value="1"><span id="rot-y-value"></span></label>
+            <label>Rotation Y: <input type="range" id="rot-y" min="-180" max="180" step="1" value="6"><span id="rot-y-value"></span></label>
             <label>Rotation Z: <input type="range" id="rot-z" min="-180" max="180" step="1" value="0"><span id="rot-z-value"></span></label>
         </div>
         <div>
-            <label>Scale: <input type="range" id="scale" min="0.1" max="5" step="0.01" value="0.56"><span id="scale-value"></span></label>
+            <label>Scale: <input type="range" id="scale" min="0.1" max="5" step="0.01" value="0.54"><span id="scale-value"></span></label>
         </div>
         <button id="copy-transform-button">Copy Transform Settings</button>
     </div>
@@ -152,6 +152,7 @@
     <!-- The AR experience is embedded in an A-Frame scene. MindAR is added dynamically. -->
     <a-scene
         scene-manager
+        class="a-scene-inactive"
         color-space="sRGB"
         renderer="colorManagement: true, physicallyCorrectLights"
         vr-mode-ui="enabled: false"
@@ -183,9 +184,9 @@
             <a-entity
                 id="model-entity"
                 gltf-model="#model"
-                scale="0.56 0.56 0.56"
-                position="0.27 -0.03 0.01"
-                rotation="0 1 0"
+                scale="0.54 0.54 0.54"
+                position="0.07 -0.02 -0.03"
+                rotation="0 6 0"
                 texture-blender="
                     scanTexture: #scanTexture;
                     paintingTexture: #paintingTexture;

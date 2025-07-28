@@ -35,19 +35,24 @@ body {
 
 .instagram-link {
     display: block;
-    margin-top: 15px;
+    margin-top: 20px;
     color: #ccc;
     text-decoration: none;
-    font-size: 1.1em;
 }
 
 .instagram-link:hover {
     color: white;
 }
 
+.instagram-link svg {
+    width: 32px;
+    height: 32px;
+    vertical-align: middle;
+}
+
 #demo-controls {
     position: absolute;
-    bottom: 20px;
+    top: 20px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
@@ -85,6 +90,10 @@ body {
     z-index: 11; /* Higher than other controls */
     display: flex;
     gap: 10px;
+}
+
+.a-scene-inactive {
+    pointer-events: none;
 }
 
 #debug-toggles button {
