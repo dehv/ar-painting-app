@@ -71,55 +71,63 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
 
 AFRAME.registerComponent('scene-manager', {
     init: function () {
-        const sceneEl = this.el;
-        const target = document.querySelector('#target');
-        const modelEntity = document.querySelector('#model-entity');
-        const startButton = document.getElementById('start-button');
-        const loadingScreen = document.getElementById('loading-screen');
-        const debugToggles = document.getElementById('debug-toggles');
-        const markerPlane = document.getElementById('marker-plane');
-        const scanningOverlay = document.getElementById('scanning-overlay');
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const isDebugMode = urlParams.has('debug');
-
-        const { initializeTimeOfDay, getIsScanning, setIsScanning } = setupTimeOfDay(modelEntity, isDebugMode);
-        initializeTimeOfDay();
-
-        if (isDebugMode) {
-            loadingScreen.style.display = 'none';
-            debugToggles.style.display = 'flex';
-            target.setAttribute('visible', 'true');
-            markerPlane.setAttribute('visible', 'true');
+        this.el.sceneEl.addEventListener('loaded', () => {
+            const sceneEl = this.el;
+            const target = document.querySelector('#target');
+            const modelEntity = document.querySelector('#model-entity');
+            const startButton = document.getElementById('start-button');
+            const loadingScreen = document.getElementById('loading-screen');
+            const debugToggles = document.getElementById('debug-toggles');
+            const markerPlane = document.getElementById('marker-plane');
+            const scanningOverlay = document.getElementById('scanning-overlay');
             
-            const cameraEl = sceneEl.camera.el;
-            cameraEl.setAttribute('look-controls', 'enabled', true);
-            cameraEl.setAttribute('wasd-controls', 'enabled: true; fly: true;');
-            cameraEl.setAttribute('position', '0 1.6 2');
+            const urlParams = new URLSearchParams(window.location.search);
+            const isDebugMode = urlParams.has('debug');
 
-            setupDebugUI(modelEntity);
-        } else {
-            sceneEl.setAttribute('mindar-image', 'imageTargetSrc: assets/marker.mind; autoStart: false; uiScanning: no;');
-            target.setAttribute('mindar-image-target', 'targetIndex', 0);
+            const { initializeTimeOfDay, getIsScanning, setIsScanning } = setupTimeOfDay(modelEntity, isDebugMode);
+            
+            // Use a timeout to ensure all A-Frame components are fully initialized, especially the camera.
+            setTimeout(() => {
+                initializeTimeOfDay();
 
-            startButton.addEventListener('click', () => {
-                loadingScreen.style.display = 'none';
-                scanningOverlay.style.display = 'flex';
-                setIsScanning(true);
-                sceneEl.classList.remove('a-scene-inactive');
-                const arSystem = sceneEl.systems["mindar-image-system"];
-                arSystem.start();
-            });
+                if (isDebugMode) {
+                    loadingScreen.style.display = 'none';
+                    debugToggles.style.display = 'flex';
+                    target.setAttribute('visible', 'true');
+                    markerPlane.setAttribute('visible', 'true');
+                    sceneEl.classList.remove('a-scene-inactive'); // Re-enable mouse events
+                    
+                    // Switch to the dedicated debug camera
+                    const arCamera = document.getElementById('ar-camera');
+                    const debugCamera = document.getElementById('debug-camera');
+                    arCamera.setAttribute('camera', 'active', false);
+                    debugCamera.setAttribute('camera', 'active', true);
 
-            sceneEl.addEventListener('enter-vr', () => {
-                scanningOverlay.style.display = 'none';
-            });
+                    setupDebugUI(modelEntity);
+                } else {
+                    sceneEl.setAttribute('mindar-image', 'imageTargetSrc: assets/marker.mind; autoStart: false; uiScanning: no;');
+                    target.setAttribute('mindar-image-target', 'targetIndex', 0);
 
-            sceneEl.addEventListener('exit-vr', () => {
-                if (getIsScanning()) {
-                    scanningOverlay.style.display = 'flex';
+                    startButton.addEventListener('click', () => {
+                        loadingScreen.style.display = 'none';
+                        scanningOverlay.style.display = 'flex';
+                        setIsScanning(true);
+                        sceneEl.classList.remove('a-scene-inactive');
+                        const arSystem = sceneEl.systems["mindar-image-system"];
+                        arSystem.start();
+                    });
+
+                    sceneEl.addEventListener('enter-vr', () => {
+                        scanningOverlay.style.display = 'none';
+                    });
+
+                    sceneEl.addEventListener('exit-vr', () => {
+                        if (getIsScanning()) {
+                            scanningOverlay.style.display = 'flex';
+                        }
+                    });
                 }
-            });
-        }
+            }, 0);
+        });
     }
 }); 

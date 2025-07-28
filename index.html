@@ -165,12 +165,20 @@
             <img id="noiseMap" src="assets/noiseTexture.png" crossorigin="anonymous">
             <img id="normalMap" src="assets/normal.png" crossorigin="anonymous">
             <img id="roughnessMap" src="assets/roughness.jpg" crossorigin="anonymous">
-            <audio id="music-morning" src="assets/music_morning.wav" preload="auto" loop></audio>
+            <audio id="music-morning" src="assets/CRIP Ambient Morning.mp3" preload="auto" loop></audio>
             <audio id="music-day" src="assets/music_day.wav" preload="auto" loop></audio>
             <audio id="music-night" src="assets/music_night.wav" preload="auto" loop></audio>
         </a-assets>
         
-        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+        <!-- Camera for AR Mode -->
+        <a-camera id="ar-camera" position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- Camera for Debug Mode -->
+        <a-entity id="debug-camera" camera="active: false" 
+            position="0 1.6 2" 
+            look-controls="enabled: true" 
+            wasd-controls="enabled: true; fly: true; acceleration: 15;">
+        </a-entity>
 
         <a-entity id="target" visible="false">
             <a-plane
