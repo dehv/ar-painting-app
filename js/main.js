@@ -1,5 +1,29 @@
 /* global AFRAME, setupDebugUI */
 
+let shaderSettings = {
+  morning: {
+    threshold: 0.58,
+    blendSoftness: 0.37,
+    noiseScrollSpeedX: 0.05,
+    noiseScrollSpeedY: -0.06,
+    roughnessFactor: 0.54
+  },
+  day: {
+    threshold: 0.58,
+    blendSoftness: 0.37,
+    noiseScrollSpeedX: 0.05,
+    noiseScrollSpeedY: -0.06,
+    roughnessFactor: 0.54
+  },
+  night: {
+    threshold: 0.45,
+    blendSoftness: 0.27,
+    noiseScrollSpeedX: 0.01,
+    noiseScrollSpeedY: -0.08,
+    roughnessFactor: 0.82
+  }
+};
+
 const setupTimeOfDay = (modelEntity, isDebugMode) => {
     const morningButton = document.getElementById('morning-button');
     const dayButton = document.getElementById('day-button');
@@ -11,7 +35,6 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
     const musicDay = document.querySelector('#music-day');
     const musicNight = document.querySelector('#music-night');
     let currentMusic = musicDay;
-    let isScanning = false;
 
     const morningHemiLight = document.querySelector('#morning-hemi-light');
     const dayHemiLight = document.querySelector('#day-hemi-light');
@@ -23,9 +46,29 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
 
     const allLights = [morningHemiLight, dayHemiLight, nightHemiLight, morningDirLight, dayDirLight, nightDirLight];
 
+    const applyShaderSettings = (mode) => {
+        const settings = shaderSettings[mode];
+        modelEntity.setAttribute('texture-blender', settings);
+        // In debug mode, also update the sliders to reflect the current state
+        if (isDebugMode) {
+            document.getElementById('threshold-slider').value = settings.threshold;
+            document.getElementById('softness-slider').value = settings.blendSoftness;
+            document.getElementById('scroll-x-slider').value = settings.noiseScrollSpeedX;
+            document.getElementById('scroll-y-slider').value = settings.noiseScrollSpeedY;
+            document.getElementById('roughness-slider').value = settings.roughnessFactor;
+            // Update the display values
+            document.getElementById('threshold-value').textContent = settings.threshold;
+            document.getElementById('softness-value').textContent = settings.blendSoftness;
+            document.getElementById('scroll-x-value').textContent = settings.noiseScrollSpeedX;
+            document.getElementById('scroll-y-value').textContent = settings.noiseScrollSpeedY;
+            document.getElementById('roughness-value').textContent = settings.roughnessFactor;
+        }
+    };
+
     const setTimeOfDay = (mode) => {
         [musicMorning, musicDay, musicNight].forEach(m => m.pause());
         allLights.forEach(l => l.setAttribute('light', 'intensity', 0));
+        applyShaderSettings(mode);
 
         if (mode === 'morning') {
             morningHemiLight.setAttribute('light', 'intensity', 1.0);
@@ -55,18 +98,16 @@ const setupTimeOfDay = (modelEntity, isDebugMode) => {
     
     if (!isDebugMode) {
         target.addEventListener('targetFound', () => { 
-            isScanning = false;
             currentMusic.play();
             scanningOverlay.style.display = 'none';
         });
         target.addEventListener('targetLost', () => { 
-            isScanning = true;
             currentMusic.pause(); 
             scanningOverlay.style.display = 'flex';
         });
     }
 
-    return { initializeTimeOfDay, getIsScanning: () => isScanning, setIsScanning: (val) => { isScanning = val; } };
+    return { initializeTimeOfDay };
 };
 
 AFRAME.registerComponent('scene-manager', {
@@ -84,7 +125,7 @@ AFRAME.registerComponent('scene-manager', {
             const urlParams = new URLSearchParams(window.location.search);
             const isDebugMode = urlParams.has('debug');
 
-            const { initializeTimeOfDay, getIsScanning, setIsScanning } = setupTimeOfDay(modelEntity, isDebugMode);
+            const { initializeTimeOfDay } = setupTimeOfDay(modelEntity, isDebugMode);
             
             // Use a timeout to ensure all A-Frame components are fully initialized, especially the camera.
             setTimeout(() => {
@@ -111,7 +152,6 @@ AFRAME.registerComponent('scene-manager', {
                     startButton.addEventListener('click', () => {
                         loadingScreen.style.display = 'none';
                         scanningOverlay.style.display = 'flex';
-                        setIsScanning(true);
                         sceneEl.classList.remove('a-scene-inactive');
                         const arSystem = sceneEl.systems["mindar-image-system"];
                         arSystem.start();
@@ -122,9 +162,7 @@ AFRAME.registerComponent('scene-manager', {
                     });
 
                     sceneEl.addEventListener('exit-vr', () => {
-                        if (getIsScanning()) {
-                            scanningOverlay.style.display = 'flex';
-                        }
+                        // No scanning overlay logic for non-debug mode
                     });
                 }
             }, 0);

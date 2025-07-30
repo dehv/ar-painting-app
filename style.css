@@ -193,7 +193,7 @@ body {
     margin: 2px 0;
 }
 
-#copy-lights-button, #copy-transform-button {
+#copy-lights-button, #copy-transform-button, #copy-shader-button {
     width: 100%;
     padding: 10px;
     background-color: #4CAF50;

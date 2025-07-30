@@ -1,4 +1,4 @@
-/* global AFRAME */
+/* global AFRAME, shaderSettings */
 
 const setupToggle = (buttonId, panelId) => {
     const button = document.getElementById(buttonId);
@@ -16,13 +16,17 @@ const setupSlider = (sliderId, valueDisplayId, propertyName, entity, componentNa
     const display = document.getElementById(valueDisplayId);
     if (!slider) return;
 
-    const updateValue = (value) => {
+    slider.addEventListener('input', (event) => {
+        const value = event.target.value;
         if (display) display.textContent = value;
-        entity.setAttribute(componentName, propertyName, value);
-    };
+        
+        // Find the currently active time of day to update the correct setting
+        const activeMode = document.querySelector('#morning-light-panel').style.display === 'block' ? 'morning' :
+                           document.querySelector('#day-light-panel').style.display === 'block' ? 'day' : 'night';
 
-    updateValue(slider.value);
-    slider.addEventListener('input', (event) => updateValue(event.target.value));
+        shaderSettings[activeMode][propertyName] = parseFloat(value);
+        entity.setAttribute(componentName, propertyName, value);
+    });
 };
 
 const setupTransformSlider = (sliderId, valueDisplayId, component, property, modelEntity) => {
@@ -141,6 +145,12 @@ const setupDebugUI = (modelEntity) => {
         };
         const settingsString = JSON.stringify(settings, null, 2);
         navigator.clipboard.writeText(settingsString).then(() => alert('Transform settings copied to clipboard!'));
+    });
+
+    const copyShaderButton = document.getElementById('copy-shader-button');
+    copyShaderButton.addEventListener('click', () => {
+        const settingsString = JSON.stringify(shaderSettings, null, 2);
+        navigator.clipboard.writeText(settingsString).then(() => alert('Shader settings copied to clipboard!'));
     });
 
     setupLightControls();
