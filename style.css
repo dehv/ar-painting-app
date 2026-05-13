@@ -1,6 +1,13 @@
+html,
 body {
-    margin: 0;
     font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    /* Prevents scrolling */
+    background-color: #000;
 }
 
 #loading-screen {
@@ -65,7 +72,7 @@ body {
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     padding: 10px;
     border-radius: 5px;
     z-index: 10;
@@ -87,7 +94,8 @@ body {
     position: absolute;
     top: 20px;
     left: 20px;
-    z-index: 11; /* Higher than other controls */
+    z-index: 11;
+    /* Higher than other controls */
     display: flex;
     gap: 10px;
 }
@@ -108,8 +116,9 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.3);
-    z-index: 12; /* Highest z-index */
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 12;
+    /* Highest z-index */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -121,8 +130,9 @@ body {
     position: relative;
     width: 80vw;
     max-width: 400px;
-    aspect-ratio: 4 / 3; /* 80cm / 60cm */
-    border: 2px solid rgba(255,255,255,0.7);
+    aspect-ratio: 4 / 3;
+    /* 80cm / 60cm */
+    border: 2px solid rgba(255, 255, 255, 0.7);
     border-radius: 10px;
     overflow: hidden;
 }
@@ -140,7 +150,7 @@ body {
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.8), transparent);
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8), transparent);
     animation: scan-anim 3s ease-in-out infinite;
 }
 
@@ -151,16 +161,25 @@ body {
 }
 
 @keyframes scan-anim {
-    0% { top: 0; }
-    50% { top: calc(100% - 3px); }
-    100% { top: 0; }
+    0% {
+        top: 0;
+    }
+
+    50% {
+        top: calc(100% - 3px);
+    }
+
+    100% {
+        top: 0;
+    }
 }
 
-#transform-controls, #lighting-controls {
+#transform-controls,
+#lighting-controls {
     position: absolute;
     top: 60px;
     left: 20px;
-    background-color: rgba(0,0,0,0.6);
+    background-color: rgba(0, 0, 0, 0.6);
     padding: 10px;
     border-radius: 5px;
     z-index: 10;
@@ -169,10 +188,13 @@ body {
 }
 
 #lighting-controls {
-    top: 60px; /* Reset in case of future changes */
+    top: 60px;
+    /* Reset in case of future changes */
 }
 
-#lighting-controls h3, #lighting-controls h4, #transform-controls h3 {
+#lighting-controls h3,
+#lighting-controls h4,
+#transform-controls h3 {
     margin-top: 0;
 }
 
@@ -188,12 +210,15 @@ body {
     margin-right: 10px;
 }
 
-.light-panel label, #transform-controls label {
+.light-panel label,
+#transform-controls label {
     display: block;
     margin: 2px 0;
 }
 
-#copy-lights-button, #copy-transform-button, #copy-shader-button {
+#copy-lights-button,
+#copy-transform-button,
+#copy-shader-button {
     width: 100%;
     padding: 10px;
     background-color: #4CAF50;
@@ -214,7 +239,19 @@ body {
     border-radius: 5px;
 }
 
+/* Ensure the A-Frame scene takes up the full viewport */
 a-scene {
-    height: 100vh;
+    width: 100%;
+    height: 100%;
+}
+
+/* Fix for mobile address bars */
+#loading-screen,
+#scanning-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100vw;
-} 
+    height: 100vh;
+    z-index: 9999;
+}
